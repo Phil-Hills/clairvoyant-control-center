@@ -1,10 +1,11 @@
 "use client"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BarChart3, Bot, CheckSquare, Cloud, FileText, Settings, Terminal, KeyRound } from "lucide-react"
 
 import {
-  Sidebar,
+  Sidebar as SidebarComponent,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -38,12 +39,12 @@ const navigationItems = [
     icon: FileText,
   },
   {
-    title: "GCP Resources",
-    href: "/gcp-resources",
+    title: "Resources",
+    href: "/resources",
     icon: Cloud,
   },
   {
-    title: "Secrets Manager",
+    title: "Secrets",
     href: "/secrets",
     icon: KeyRound,
   },
@@ -54,11 +55,11 @@ const navigationItems = [
   },
 ]
 
-export function DashboardSidebar() {
+export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <SidebarComponent variant="sidebar" collapsible="icon">
       <SidebarHeader className="flex items-center px-4 py-2">
         <Link href="/" className="flex items-center gap-2">
           <Terminal className="h-6 w-6 text-primary" />
@@ -90,6 +91,6 @@ export function DashboardSidebar() {
         </div>
       </SidebarFooter>
       <SidebarRail />
-    </Sidebar>
+    </SidebarComponent>
   )
 }

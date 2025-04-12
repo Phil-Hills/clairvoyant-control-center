@@ -2,48 +2,45 @@
 
 import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TaskTable } from "@/components/tasks/task-table"
-import { Card } from "@/components/ui/card"
-import { BarChart } from "lucide-react"
+import { TaskTable } from "./task-table"
 
 export function TaskQueueTabs() {
   const [activeTab, setActiveTab] = useState("all")
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+  }
+
   return (
-    <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
-      <div className="flex items-center justify-between">
+    <Tabs defaultValue="all" className="w-full" onValueChange={handleTabChange}>
+      <div className="flex justify-between items-center mb-4">
         <TabsList>
           <TabsTrigger value="all">All Tasks</TabsTrigger>
-          <TabsTrigger value="in-progress">In Progress</TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="running">Running</TabsTrigger>
+          <TabsTrigger value="success">Success</TabsTrigger>
           <TabsTrigger value="failed">Failed</TabsTrigger>
+          <TabsTrigger value="retrying">Retrying</TabsTrigger>
+          <TabsTrigger value="queued">Queued</TabsTrigger>
         </TabsList>
-
-        <Card className="p-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <BarChart className="h-4 w-4" />
-          <span>
-            {activeTab === "all" && "Processing 12 tasks/min"}
-            {activeTab === "in-progress" && "5 tasks currently running"}
-            {activeTab === "completed" && "87 tasks completed today"}
-            {activeTab === "failed" && "3 tasks failed in last hour"}
-          </span>
-        </Card>
       </div>
 
-      <TabsContent value="all" className="space-y-4">
+      <TabsContent value="all">
         <TaskTable filterStatus={null} />
       </TabsContent>
-
-      <TabsContent value="in-progress" className="space-y-4">
+      <TabsContent value="running">
         <TaskTable filterStatus="running" />
       </TabsContent>
-
-      <TabsContent value="completed" className="space-y-4">
+      <TabsContent value="success">
         <TaskTable filterStatus="success" />
       </TabsContent>
-
-      <TabsContent value="failed" className="space-y-4">
+      <TabsContent value="failed">
         <TaskTable filterStatus="failed" />
+      </TabsContent>
+      <TabsContent value="retrying">
+        <TaskTable filterStatus="retrying" />
+      </TabsContent>
+      <TabsContent value="queued">
+        <TaskTable filterStatus="queued" />
       </TabsContent>
     </Tabs>
   )

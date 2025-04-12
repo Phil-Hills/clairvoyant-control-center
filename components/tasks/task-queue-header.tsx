@@ -1,10 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Filter, RefreshCw } from "lucide-react"
+import { CalendarIcon, Filter, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,22 +40,15 @@ const statuses = [
   { id: "queued", name: "Queued" },
 ]
 
-const timeRanges = [
-  { id: "last-hour", name: "Last Hour" },
-  { id: "last-24-hours", name: "Last 24 Hours" },
-  { id: "last-7-days", name: "Last 7 Days" },
-  { id: "last-30-days", name: "Last 30 Days" },
-  { id: "custom", name: "Custom Range" },
-]
-
 export function TaskQueueHeader() {
   const { toast } = useToast()
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [date, setDate] = useState<Date>()
   const [activeFilters, setActiveFilters] = useState({
     agents: [] as string[],
     statuses: [] as string[],
-    timeRange: "last-24-hours",
+    date: null as Date | null,
   })
 
   const handleRefresh = () => {
@@ -95,16 +92,18 @@ export function TaskQueueHeader() {
     })
   }
 
-  const setTimeRange = (timeRangeId: string) => {
-    setActiveFilters((prev) => ({ ...prev, timeRange: timeRangeId }))
+  const setDateFilter = (date: Date | undefined) => {
+    setDate(date)
+    setActiveFilters((prev) => ({ ...prev, date: date || null }))
   }
 
   const clearAllFilters = () => {
     setActiveFilters({
       agents: [],
       statuses: [],
-      timeRange: "last-24-hours",
+      date: null,
     })
+    setDate(undefined)
     toast({
       title: "Filters cleared",
       description: "All filters have been reset.",
@@ -112,11 +111,7 @@ export function TaskQueueHeader() {
   }
 
   const getActiveFilterCount = () => {
-    return (
-      activeFilters.agents.length +
-      activeFilters.statuses.length +
-      (activeFilters.timeRange !== "last-24-hours" ? 1 : 0)
-    )
+    return activeFilters.agents.length + activeFilters.statuses.length + (activeFilters.date ? 1 : 0)
   }
 
   const activeFilterCount = getActiveFilterCount()
@@ -128,7 +123,7 @@ export function TaskQueueHeader() {
           <h1 className="text-3xl font-bold tracking-tight">Task Queue</h1>
           <p className="text-muted-foreground">Monitor queued, running, and completed agent tasks in real time.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             Refresh
@@ -190,25 +185,25 @@ export function TaskQueueHeader() {
                 </DropdownMenuPortal>
               </DropdownMenuSub>
 
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <span>Time Range</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent>
-                    {timeRanges.map((range) => (
-                      <DropdownMenuItem
-                        key={range.id}
-                        onSelect={() => setTimeRange(range.id)}
-                        className="flex items-center justify-between"
+              <DropdownMenuItem asChild>
+                <div className="px-2 py-1.5">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
                       >
-                        {range.name}
-                        {activeFilters.timeRange === range.id && <span>✓</span>}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={date} onSelect={setDateFilter} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={clearAllFilters}>Clear all filters</DropdownMenuItem>
