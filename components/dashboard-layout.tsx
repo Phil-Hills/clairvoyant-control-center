@@ -3,13 +3,14 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { DashboardSidebar } from "@/components/dashboard-sidebar"
-import { DashboardNavbar } from "@/components/dashboard-navbar"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { Sidebar } from "@/components/sidebar"
+import { Topbar } from "@/components/topbar"
+import { AIAgentGuide } from "@/components/ai-guide/ai-agent-guide"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile()
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile)
   const [isMounted, setIsMounted] = useState(false)
 
   // Prevent hydration mismatch
@@ -22,14 +23,13 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex min-h-screen">
-        <DashboardSidebar />
-        <SidebarInset className="flex w-full flex-col">
-          <DashboardNavbar />
-          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
-        </SidebarInset>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Topbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        <AIAgentGuide />
       </div>
-    </SidebarProvider>
+    </div>
   )
 }

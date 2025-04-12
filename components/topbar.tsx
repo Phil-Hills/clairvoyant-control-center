@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bell, Check, ChevronDown, RefreshCw } from "lucide-react"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Bell, Check, ChevronDown, Menu, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -24,7 +23,11 @@ const environments = [
 
 type SyncStatus = "synced" | "syncing" | "error"
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick: () => void
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const [environment, setEnvironment] = useState(environments[0])
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced")
 
@@ -38,7 +41,10 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-      <SidebarTrigger />
+      <Button variant="ghost" size="icon" onClick={onMenuClick} className="md:hidden">
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle menu</span>
+      </Button>
 
       <div className="flex flex-1 items-center justify-between">
         <div className="flex items-center gap-2">
