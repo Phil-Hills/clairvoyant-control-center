@@ -2,25 +2,28 @@
 
 import { useEffect, useState } from "react"
 
-export function useIsMobile() {
+export function useIsMobile(): boolean {
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    const checkIsMobile = () => {
+    const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
 
-    // Initial check
-    checkIsMobile()
+    // Set initial value
+    handleResize()
 
     // Add event listener
-    window.addEventListener("resize", checkIsMobile)
+    window.addEventListener("resize", handleResize)
 
-    // Clean up
+    // Remove event listener on cleanup
     return () => {
-      window.removeEventListener("resize", checkIsMobile)
+      window.removeEventListener("resize", handleResize)
     }
   }, [])
 
   return isMobile
 }
+
+// Export the same function with the name that's being imported elsewhere
+export const useMobile = useIsMobile
