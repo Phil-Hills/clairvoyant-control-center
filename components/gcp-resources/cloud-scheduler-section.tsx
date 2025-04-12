@@ -226,7 +226,9 @@ export function CloudSchedulerSection() {
                     <TableRow key={schedule.id}>
                       <TableCell>
                         <Tooltip>
-                          <TooltipTrigger className="font-medium">{schedule.name}</TooltipTrigger>
+                          <TooltipTrigger asChild>
+                            <span className="font-medium cursor-default">{schedule.name}</span>
+                          </TooltipTrigger>
                           <TooltipContent>
                             <p>{schedule.description}</p>
                             <p className="text-xs text-muted-foreground mt-1">
@@ -244,16 +246,20 @@ export function CloudSchedulerSection() {
                       <TableCell>{schedule.agent}</TableCell>
                       <TableCell>
                         <Tooltip>
-                          <TooltipTrigger className="text-sm">
-                            {formatDistanceToNow(schedule.lastRun, { addSuffix: true })}
+                          <TooltipTrigger asChild>
+                            <span className="text-sm cursor-default">
+                              {formatDistanceToNow(schedule.lastRun, { addSuffix: true })}
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>{format(schedule.lastRun, "PPpp")}</TooltipContent>
                         </Tooltip>
                       </TableCell>
                       <TableCell>
                         <Tooltip>
-                          <TooltipTrigger className="text-sm">
-                            {formatDistanceToNow(schedule.nextRun, { addSuffix: true })}
+                          <TooltipTrigger asChild>
+                            <span className="text-sm cursor-default">
+                              {formatDistanceToNow(schedule.nextRun, { addSuffix: true })}
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>{format(schedule.nextRun, "PPpp")}</TooltipContent>
                         </Tooltip>

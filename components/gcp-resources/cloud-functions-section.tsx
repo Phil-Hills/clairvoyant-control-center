@@ -247,7 +247,9 @@ export function CloudFunctionsSection() {
                     <TableRow key={func.id}>
                       <TableCell>
                         <Tooltip>
-                          <TooltipTrigger className="font-medium">{func.name}</TooltipTrigger>
+                          <TooltipTrigger asChild>
+                            <span className="font-medium cursor-default">{func.name}</span>
+                          </TooltipTrigger>
                           <TooltipContent>
                             <p>Region: {func.region}</p>
                             <p>Runtime: {func.runtime}</p>

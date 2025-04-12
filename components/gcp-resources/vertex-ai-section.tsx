@@ -222,9 +222,11 @@ export function VertexAISection() {
                     <TableRow key={endpoint.id}>
                       <TableCell>
                         <Tooltip>
-                          <TooltipTrigger className="flex items-center gap-1">
-                            {endpoint.displayName}
-                            <Info className="h-3 w-3 text-muted-foreground" />
+                          <TooltipTrigger asChild>
+                            <span className="flex items-center gap-1 cursor-default">
+                              {endpoint.displayName}
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Model: {endpoint.name}</p>

@@ -244,8 +244,10 @@ export function SecretManagerSection() {
                       <TableCell>
                         {secret.lastAccessed ? (
                           <Tooltip>
-                            <TooltipTrigger className="text-sm">
-                              {formatDistanceToNow(secret.lastAccessed, { addSuffix: true })}
+                            <TooltipTrigger asChild>
+                              <span className="text-sm cursor-default">
+                                {formatDistanceToNow(secret.lastAccessed, { addSuffix: true })}
+                              </span>
                             </TooltipTrigger>
                             <TooltipContent>{format(secret.lastAccessed, "PPpp")}</TooltipContent>
                           </Tooltip>

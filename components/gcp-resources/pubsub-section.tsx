@@ -214,10 +214,14 @@ export function PubSubSection() {
                 : mockPubSubTopics.map((topic) => (
                     <TableRow key={topic.id}>
                       <TableCell>
-                        <TooltipTrigger className="font-medium">{topic.name}</TooltipTrigger>
-                        <TooltipContent>
-                          <p>Region: {topic.region}</p>
-                        </TooltipContent>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="font-medium cursor-default">{topic.name}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Region: {topic.region}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
@@ -244,8 +248,8 @@ export function PubSubSection() {
                         </span>
                         {topic.hasDeadLetterQueue && (
                           <Tooltip>
-                            <TooltipTrigger>
-                              <AlertTriangle className="h-4 w-4 text-amber-500 ml-2" />
+                            <TooltipTrigger asChild>
+                              <AlertTriangle className="h-4 w-4 text-amber-500 ml-2 cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>Dead Letter Queue detected</p>
