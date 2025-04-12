@@ -1,7 +1,7 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, Bot, CheckSquare, Cloud, FileText, Settings, Terminal, KeyRound } from "lucide-react"
+import { BarChart3, Bot, CheckSquare, Cloud, FileText, Settings, Terminal, KeyRound, CommandIcon } from "lucide-react"
 
 import {
   Sidebar,
@@ -28,6 +28,11 @@ const navigationItems = [
     icon: Bot,
   },
   {
+    title: "Agent Command Console",
+    href: "/agents/command",
+    icon: CommandIcon,
+  },
+  {
     title: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
@@ -43,7 +48,7 @@ const navigationItems = [
     icon: Cloud,
   },
   {
-    title: "Secrets Manager",
+    title: "Secrets",
     href: "/secrets",
     icon: KeyRound,
   },

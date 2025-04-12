@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { ChevronRight, ChevronDown, ExternalLink } from "lucide-react"
+import { ChevronRight, ChevronDown, ExternalLink, FileText } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import type { LogEntry } from "@/components/logs/logs-view"
+import { EmptyState } from "@/components/ui/empty-state"
 import { JsonViewer } from "@/components/logs/json-viewer"
+import type { LogEntry } from "@/components/logs/logs-view"
 
 interface LogsTableProps {
   logs: LogEntry[]
@@ -209,26 +210,25 @@ export function LogsTable({ logs, onLogSelect, isLoading, newLogsCount, onNewLog
     )
   }
 
-  return (
-    <TooltipProvider>
-      {/* Desktop view */}
-      <div className="hidden md:block rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead style={{ width: "40px" }}></TableHead>
-              <TableHead style={{ width: "160px" }}>Timestamp</TableHead>
-              <TableHead style={{ width: "100px" }}>Severity</TableHead>
-              <TableHead style={{ width: "150px" }}>Agent</TableHead>
-              <TableHead>Message</TableHead>
-              <TableHead style={{ width: "140px" }}>Source</TableHead>
-              <TableHead style={{ width: "100px" }}>Task ID</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              // Loading skeleton
-              Array.from({ length: 5 }).map((_, index) => (
+  if (isLoading) {
+    return (
+      <TooltipProvider>
+        {/* Loading state - Desktop */}
+        <div className="hidden md:block rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: "40px" }}></TableHead>
+                <TableHead style={{ width: "160px" }}>Timestamp</TableHead>
+                <TableHead style={{ width: "100px" }}>Severity</TableHead>
+                <TableHead style={{ width: "150px" }}>Agent</TableHead>
+                <TableHead>Message</TableHead>
+                <TableHead style={{ width: "140px" }}>Source</TableHead>
+                <TableHead style={{ width: "100px" }}>Task ID</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
                   <TableCell>
                     <Skeleton className="h-6 w-6" />
@@ -252,74 +252,14 @@ export function LogsTable({ logs, onLogSelect, isLoading, newLogsCount, onNewLog
                     <Skeleton className="h-4 w-16" />
                   </TableCell>
                 </TableRow>
-              ))
-            ) : logs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No logs found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              logs.map((log) => (
-                <>
-                  <TableRow
-                    key={log.id}
-                    className={`${expandedLogs.includes(log.id) ? "border-b-0" : ""} ${
-                      highlightedLogs.includes(log.id) ? "bg-primary/5 animate-highlight" : ""
-                    }`}
-                  >
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleLogExpanded(log.id)}>
-                        {expandedLogs.includes(log.id) ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Tooltip>
-                        <TooltipTrigger className="text-xs text-muted-foreground">
-                          {format(log.timestamp, "HH:mm:ss")}
-                        </TooltipTrigger>
-                        <TooltipContent>{format(log.timestamp, "PPpp")}</TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell>{getSeverityBadge(log.severity)}</TableCell>
-                    <TableCell>{log.agentName}</TableCell>
-                    <TableCell>
-                      <div className="truncate max-w-md" title={log.message}>
-                        {log.message}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getSourceBadge(log.source)}</TableCell>
-                    <TableCell>
-                      {log.taskId ? (
-                        <span className="font-mono text-xs">{log.taskId}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                  {expandedLogs.includes(log.id) && (
-                    <TableRow className="bg-muted/30">
-                      <TableCell colSpan={7} className="p-0">
-                        {renderExpandedLogDetails(log)}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
-      {/* Mobile view */}
-      <div className="md:hidden space-y-4">
-        {isLoading ? (
-          // Loading skeleton for mobile
-          Array.from({ length: 3 }).map((_, index) => (
+        {/* Loading state - Mobile */}
+        <div className="md:hidden space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
             <div key={index} className="border rounded-md p-4 space-y-2">
               <div className="flex justify-between">
                 <Skeleton className="h-6 w-20" />
@@ -329,13 +269,96 @@ export function LogsTable({ logs, onLogSelect, isLoading, newLogsCount, onNewLog
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-6 w-24" />
             </div>
-          ))
-        ) : logs.length === 0 ? (
-          <div className="text-center p-8 border rounded-md">No logs found.</div>
-        ) : (
-          logs.map((log) => renderMobileLogCard(log))
-        )}
+          ))}
+        </div>
+      </TooltipProvider>
+    )
+  }
+
+  if (logs.length === 0) {
+    return (
+      <EmptyState
+        icon={FileText}
+        title="No logs found"
+        description="There are no logs in the system yet. Logs will appear here when agents start running."
+        className="h-[350px]"
+      />
+    )
+  }
+
+  return (
+    <TooltipProvider>
+      {/* Desktop view */}
+      <div className="hidden md:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead style={{ width: "40px" }}></TableHead>
+              <TableHead style={{ width: "160px" }}>Timestamp</TableHead>
+              <TableHead style={{ width: "100px" }}>Severity</TableHead>
+              <TableHead style={{ width: "150px" }}>Agent</TableHead>
+              <TableHead>Message</TableHead>
+              <TableHead style={{ width: "140px" }}>Source</TableHead>
+              <TableHead style={{ width: "100px" }}>Task ID</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {logs.map((log) => (
+              <>
+                <TableRow
+                  key={log.id}
+                  className={`${expandedLogs.includes(log.id) ? "border-b-0" : ""} ${
+                    highlightedLogs.includes(log.id) ? "bg-primary/5 animate-highlight" : ""
+                  }`}
+                >
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleLogExpanded(log.id)}>
+                      {expandedLogs.includes(log.id) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger className="text-xs text-muted-foreground">
+                        {format(log.timestamp, "HH:mm:ss")}
+                      </TooltipTrigger>
+                      <TooltipContent>{format(log.timestamp, "PPpp")}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>{getSeverityBadge(log.severity)}</TableCell>
+                  <TableCell>{log.agentName}</TableCell>
+                  <TableCell>
+                    <div className="truncate max-w-md" title={log.message}>
+                      {log.message}
+                    </div>
+                  </TableCell>
+                  <TableCell>{getSourceBadge(log.source)}</TableCell>
+                  <TableCell>
+                    {log.taskId ? (
+                      <span className="font-mono text-xs">{log.taskId}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+                {expandedLogs.includes(log.id) && (
+                  <TableRow className="bg-muted/30">
+                    <TableCell colSpan={7} className="p-0">
+                      {renderExpandedLogDetails(log)}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            ))}
+          </TableBody>
+        </Table>
       </div>
+
+      {/* Mobile view */}
+      <div className="md:hidden space-y-4">{logs.map((log) => renderMobileLogCard(log))}</div>
     </TooltipProvider>
   )
 }

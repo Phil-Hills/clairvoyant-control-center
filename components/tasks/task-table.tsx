@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format, formatDistanceToNow } from "date-fns"
 import {
   AlertCircle,
@@ -14,6 +14,7 @@ import {
   RefreshCw,
   StopCircle,
   Terminal,
+  CheckSquare,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -30,132 +31,29 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-// Mock data for tasks
-const mockTasks = [
-  {
-    id: "task-1a2b3c",
-    agentId: "agent-1",
-    agentName: "Data Processor",
-    status: "running",
-    triggerType: "pubsub",
-    startTime: new Date(Date.now() - 1000 * 60 * 2), // 2 minutes ago
-    duration: "2m 15s",
-    payload: {
-      source: "gs://data-bucket/incoming/file1.json",
-      destination: "gs://processed-bucket/output/",
-      options: {
-        format: "parquet",
-        compression: "snappy",
-      },
-    },
-    logs: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 2), level: "INFO", message: "Task started" },
-      {
-        timestamp: new Date(Date.now() - 1000 * 60 * 1.5),
-        level: "INFO",
-        message: "Processing file gs://data-bucket/incoming/file1.json",
-      },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 1), level: "INFO", message: "Converted 50% of records" },
-    ],
-  },
-  {
-    id: "task-2d3e4f",
-    agentId: "agent-2",
-    agentName: "Content Analyzer",
-    status: "success",
-    triggerType: "manual",
-    startTime: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-    duration: "45s",
-    payload: {
-      content: "This is a sample text to analyze sentiment and extract entities.",
-      options: {
-        extractEntities: true,
-        analyzeSentiment: true,
-      },
-    },
-    logs: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 15), level: "INFO", message: "Task started" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 14.8), level: "INFO", message: "Analyzing content" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 14.5), level: "INFO", message: "Extracted 3 entities" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 14.2), level: "INFO", message: "Sentiment analysis complete" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 14.1), level: "INFO", message: "Task completed successfully" },
-    ],
-  },
-  {
-    id: "task-3f4g5h",
-    agentId: "agent-3",
-    agentName: "Notification Service",
-    status: "failed",
-    triggerType: "scheduler",
-    startTime: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    duration: "12s",
-    payload: {
-      recipients: ["user@example.com", "admin@example.com"],
-      subject: "System Alert",
-      body: "Disk usage has exceeded 80% threshold.",
-    },
-    logs: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 30), level: "INFO", message: "Task started" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 29.9), level: "INFO", message: "Preparing email notification" },
-      {
-        timestamp: new Date(Date.now() - 1000 * 60 * 29.8),
-        level: "ERROR",
-        message: "Failed to connect to SMTP server",
-      },
-      {
-        timestamp: new Date(Date.now() - 1000 * 60 * 29.7),
-        level: "ERROR",
-        message: "Task failed: Connection timeout",
-      },
-    ],
-    error: "Connection timeout when connecting to SMTP server smtp.example.com:587",
-  },
-  {
-    id: "task-4h5i6j",
-    agentId: "agent-4",
-    agentName: "Log Analyzer",
-    status: "retrying",
-    triggerType: "pubsub",
-    startTime: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    duration: "3m 20s",
-    payload: {
-      logSource: "gs://logs-bucket/app-logs/2023-04-11/",
-      pattern: "ERROR|CRITICAL",
-      outputFormat: "json",
-    },
-    logs: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 5), level: "INFO", message: "Task started" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 4.5), level: "INFO", message: "Scanning log files" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 4), level: "WARNING", message: "Rate limit reached, backing off" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 3), level: "INFO", message: "Retrying operation" },
-      {
-        timestamp: new Date(Date.now() - 1000 * 60 * 2),
-        level: "WARNING",
-        message: "Rate limit reached again, backing off",
-      },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 1), level: "INFO", message: "Retrying operation" },
-    ],
-  },
-  {
-    id: "task-5i6j7k",
-    agentId: "agent-5",
-    agentName: "Sentiment Analyzer",
-    status: "queued",
-    triggerType: "manual",
-    startTime: new Date(Date.now() - 1000 * 30), // 30 seconds ago
-    duration: "0s",
-    payload: {
-      text: "I absolutely love the new features in this product! The interface is intuitive and responsive.",
-      language: "en",
-      features: ["sentiment", "entities", "syntax"],
-    },
-    logs: [{ timestamp: new Date(Date.now() - 1000 * 30), level: "INFO", message: "Task queued" }],
-  },
-]
+import { EmptyState } from "@/components/ui/empty-state"
 
 type TaskStatus = "running" | "success" | "failed" | "retrying" | "queued"
 type TriggerType = "pubsub" | "manual" | "scheduler"
+
+interface TaskLog {
+  timestamp: Date
+  level: string
+  message: string
+}
+
+interface Task {
+  id: string
+  agentId: string
+  agentName: string
+  status: TaskStatus
+  triggerType: TriggerType
+  startTime: Date
+  duration: string
+  payload: any
+  logs: TaskLog[]
+  error?: string
+}
 
 interface TaskTableProps {
   filterStatus: TaskStatus | null
@@ -164,10 +62,20 @@ interface TaskTableProps {
 export function TaskTable({ filterStatus }: TaskTableProps) {
   const { toast } = useToast()
   const [expandedTasks, setExpandedTasks] = useState<string[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [tasks, setTasks] = useState<Task[]>([])
+
+  // Simulate loading state briefly and then show empty state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Filter tasks based on status if filterStatus is provided
-  const filteredTasks = filterStatus ? mockTasks.filter((task) => task.status === filterStatus) : mockTasks
+  const filteredTasks = filterStatus ? tasks.filter((task) => task.status === filterStatus) : tasks
 
   const toggleTaskExpanded = (taskId: string) => {
     setExpandedTasks((prev) => (prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]))
@@ -270,7 +178,7 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
   }
 
   // Function to render the task details when expanded
-  const renderTaskDetails = (task: (typeof mockTasks)[0]) => {
+  const renderTaskDetails = (task: Task) => {
     return (
       <div className="px-4 py-3 bg-muted/30 rounded-b-md border-t">
         <Tabs defaultValue="payload" className="w-full">
@@ -348,7 +256,7 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
   }
 
   // Mobile card view for tasks
-  const renderMobileTaskCard = (task: (typeof mockTasks)[0]) => {
+  const renderMobileTaskCard = (task: Task) => {
     const isExpanded = expandedTasks.includes(task.id)
 
     return (
@@ -363,8 +271,8 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
               <span className="text-xs text-muted-foreground ml-2">#{task.id}</span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {getStatusBadge(task.status as TaskStatus)}
-              {getTriggerBadge(task.triggerType as TriggerType)}
+              {getStatusBadge(task.status)}
+              {getTriggerBadge(task.triggerType)}
             </div>
             <div className="text-xs text-muted-foreground">
               Started {formatDistanceToNow(task.startTime, { addSuffix: true })}
@@ -382,6 +290,85 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
 
         {isExpanded && renderTaskDetails(task)}
       </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <TooltipProvider>
+        <div className="hidden md:block rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead style={{ width: "40px" }}></TableHead>
+                <TableHead>Task ID</TableHead>
+                <TableHead>Agent</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Trigger</TableHead>
+                <TableHead>Started</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 3 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <Skeleton className="h-6 w-6" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-32" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-20" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-8 w-8 ml-auto" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <div className="md:hidden">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className="border rounded-md p-4 space-y-2 mb-4">
+              <div className="flex justify-between">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-5 w-5" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+              <Skeleton className="h-4 w-40" />
+            </div>
+          ))}
+        </div>
+      </TooltipProvider>
+    )
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <EmptyState
+        icon={CheckSquare}
+        title="No tasks found"
+        description="There are no tasks in the system yet. Tasks will appear here when agents start running."
+        className="h-[350px]"
+      />
     )
   }
 
@@ -403,37 +390,10 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <Skeleton className="h-6 w-6" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-32" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-20" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-4 w-16" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-8 w-20" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : filteredTasks.length === 0 ? (
+            {filteredTasks.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24 text-center">
-                  No tasks found.
+                  No tasks found matching the current filter.
                 </TableCell>
               </TableRow>
             ) : (
@@ -456,8 +416,8 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
                     </TableCell>
                     <TableCell className="font-mono text-xs">{task.id}</TableCell>
                     <TableCell>{task.agentName}</TableCell>
-                    <TableCell>{getStatusBadge(task.status as TaskStatus)}</TableCell>
-                    <TableCell>{getTriggerBadge(task.triggerType as TriggerType)}</TableCell>
+                    <TableCell>{getStatusBadge(task.status)}</TableCell>
+                    <TableCell>{getTriggerBadge(task.triggerType)}</TableCell>
                     <TableCell>
                       <Tooltip>
                         <TooltipTrigger className="flex items-center gap-1 text-muted-foreground text-xs">
@@ -525,20 +485,8 @@ export function TaskTable({ filterStatus }: TaskTableProps) {
 
       {/* Mobile view */}
       <div className="md:hidden space-y-4">
-        {loading ? (
-          // Loading skeleton for mobile
-          Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="border rounded-md p-4 space-y-2">
-              <Skeleton className="h-5 w-3/4" />
-              <div className="flex gap-2">
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ))
-        ) : filteredTasks.length === 0 ? (
-          <div className="text-center p-8 border rounded-md">No tasks found.</div>
+        {filteredTasks.length === 0 ? (
+          <div className="text-center p-8 border rounded-md">No tasks found matching the current filter.</div>
         ) : (
           filteredTasks.map((task) => renderMobileTaskCard(task))
         )}

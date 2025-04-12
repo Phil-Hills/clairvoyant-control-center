@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format, formatDistanceToNow } from "date-fns"
 import { Clock, Copy, ExternalLink, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -20,108 +20,44 @@ import { useToast } from "@/hooks/use-toast"
 import { SecretFormModal } from "@/components/secrets/secret-form-modal"
 import { SecretDetailDrawer } from "@/components/secrets/secret-detail-drawer"
 import { PinConfirmationModal } from "@/components/secrets/pin-confirmation-modal"
+import { EmptyState } from "@/components/ui/empty-state"
+import { useRouter } from "next/navigation"
 
-// Mock data for secrets
-const mockSecrets = [
-  {
-    id: "secret-1",
-    name: "API_KEY",
-    type: "api-key",
-    value: "sk_test_51NZQpqLkUJEiGDasdfasdfasdfasdfasdfasdfasdfasdfasdf",
-    autoRotation: true,
-    lastAccessed: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    usedBy: ["Data Processor", "Content Analyzer"],
-    auditLog: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 30), action: "accessed", agent: "Data Processor" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), action: "accessed", agent: "Content Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), action: "created", agent: "Admin" },
-    ],
-  },
-  {
-    id: "secret-2",
-    name: "DATABASE_URL",
-    type: "connection-string",
-    value: "postgresql://username:password@localhost:5432/mydatabase",
-    autoRotation: false,
-    lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    usedBy: ["Data Processor", "Log Analyzer", "Notification Service"],
-    auditLog: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), action: "accessed", agent: "Log Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5), action: "accessed", agent: "Data Processor" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), action: "created", agent: "Admin" },
-    ],
-  },
-  {
-    id: "secret-3",
-    name: "AUTH_TOKEN",
-    type: "oauth-token",
-    value:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ",
-    autoRotation: true,
-    lastAccessed: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-    usedBy: ["Content Analyzer"],
-    auditLog: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), action: "accessed", agent: "Content Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), action: "created", agent: "Admin" },
-    ],
-  },
-  {
-    id: "secret-4",
-    name: "OPENAI_API_KEY",
-    type: "api-key",
-    value: "sk-o2j3n4o23n4oi2j3n4o2i3j4n2o3i4n23o4i2n3o4i2n3o4i2n34",
-    autoRotation: false,
-    lastAccessed: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-    usedBy: ["Content Analyzer", "Sentiment Analyzer"],
-    auditLog: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 15), action: "accessed", agent: "Sentiment Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), action: "accessed", agent: "Content Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), action: "created", agent: "Admin" },
-    ],
-  },
-  {
-    id: "secret-5",
-    name: "GOOGLE_APPLICATION_CREDENTIALS",
-    type: "json-blob",
-    value: JSON.stringify(
-      {
-        type: "service_account",
-        project_id: "my-project",
-        private_key_id: "private_key_id",
-        private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAA...\n-----END PRIVATE KEY-----\n",
-        client_email: "service-account@my-project.iam.gserviceaccount.com",
-        client_id: "client_id",
-        auth_uri: "https://accounts.google.com/o/oauth2/auth",
-        token_uri: "https://oauth2.googleapis.com/token",
-        auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-        client_x509_cert_url:
-          "https://www.googleapis.com/robot/v1/metadata/x509/service-account%40my-project.iam.gserviceaccount.com",
-      },
-      null,
-      2,
-    ),
-    autoRotation: false,
-    lastAccessed: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    usedBy: ["Data Processor", "Content Analyzer", "Log Analyzer", "Notification Service", "Sentiment Analyzer"],
-    auditLog: [
-      { timestamp: new Date(Date.now() - 1000 * 60 * 5), action: "accessed", agent: "Data Processor" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 10), action: "accessed", agent: "Content Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 15), action: "accessed", agent: "Log Analyzer" },
-      { timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), action: "created", agent: "Admin" },
-    ],
-  },
-]
+interface Secret {
+  id: string
+  name: string
+  type: string
+  value: string
+  autoRotation: boolean
+  lastAccessed: Date | null
+  usedBy: string[]
+  auditLog: {
+    timestamp: Date
+    action: string
+    agent: string
+  }[]
+}
 
 export function SecretsTable() {
   const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [secrets, setSecrets] = useState(mockSecrets)
-  const [selectedSecret, setSelectedSecret] = useState<(typeof mockSecrets)[0] | null>(null)
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [secrets, setSecrets] = useState<Secret[]>([])
+  const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const [revealedSecrets, setRevealedSecrets] = useState<string[]>([])
   const [secretToReveal, setSecretToReveal] = useState<string | null>(null)
+
+  // Simulate loading state briefly and then show empty state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Function to get type badge
   const getTypeBadge = (type: string) => {
@@ -171,12 +107,12 @@ export function SecretsTable() {
     }
   }
 
-  const handleEditSecret = (secret: (typeof mockSecrets)[0]) => {
+  const handleEditSecret = (secret: Secret) => {
     setSelectedSecret(secret)
     setIsEditModalOpen(true)
   }
 
-  const handleViewSecret = (secret: (typeof mockSecrets)[0]) => {
+  const handleViewSecret = (secret: Secret) => {
     setSelectedSecret(secret)
     setIsDetailDrawerOpen(true)
   }
@@ -225,7 +161,7 @@ export function SecretsTable() {
     })
   }
 
-  const formatSecretValue = (secret: (typeof mockSecrets)[0]) => {
+  const formatSecretValue = (secret: Secret) => {
     const isRevealed = revealedSecrets.includes(secret.id)
 
     if (!isRevealed) {
@@ -246,8 +182,14 @@ export function SecretsTable() {
     return secret.value
   }
 
+  const handleCreateSecret = () => {
+    // Open create secret modal
+    setSelectedSecret(null)
+    setIsEditModalOpen(true)
+  }
+
   // Mobile card view for secrets
-  const renderMobileSecretCard = (secret: (typeof mockSecrets)[0]) => {
+  const renderMobileSecretCard = (secret: Secret) => {
     const isRevealed = revealedSecrets.includes(secret.id)
 
     return (
@@ -348,25 +290,24 @@ export function SecretsTable() {
     )
   }
 
-  return (
-    <TooltipProvider>
-      {/* Desktop view */}
-      <div className="hidden md:block rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Secret Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Auto-Rotation</TableHead>
-              <TableHead>Last Accessed</TableHead>
-              <TableHead>Used By</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 5 }).map((_, index) => (
+  if (loading) {
+    return (
+      <TooltipProvider>
+        {/* Desktop view - Loading */}
+        <div className="hidden md:block rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Secret Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Auto-Rotation</TableHead>
+                <TableHead>Last Accessed</TableHead>
+                <TableHead>Used By</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 3 }).map((_, index) => (
                 <TableRow key={index}>
                   <TableCell>
                     <Skeleton className="h-4 w-40" />
@@ -391,146 +332,15 @@ export function SecretsTable() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            ) : secrets.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
-                  No secrets found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              secrets.map((secret) => {
-                const isRevealed = revealedSecrets.includes(secret.id)
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
-                return (
-                  <TableRow key={secret.id}>
-                    <TableCell className="font-medium font-mono">{secret.name}</TableCell>
-                    <TableCell>{getTypeBadge(secret.type)}</TableCell>
-                    <TableCell>
-                      {secret.autoRotation ? (
-                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                          Enabled
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-muted/50 text-muted-foreground">
-                          Disabled
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {secret.lastAccessed ? (
-                        <Tooltip>
-                          <TooltipTrigger className="text-sm">
-                            {formatDistanceToNow(secret.lastAccessed, { addSuffix: true })}
-                          </TooltipTrigger>
-                          <TooltipContent>{format(secret.lastAccessed, "PPpp")}</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <span className="text-muted-foreground">Never</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {secret.usedBy.map((agent) => (
-                          <Badge key={agent} variant="secondary" className="text-xs">
-                            {agent}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {isRevealed ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleHideSecret(secret.id)}
-                              >
-                                <EyeOff className="h-4 w-4" />
-                                <span className="sr-only">Hide Secret</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Hide Secret</TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleRevealSecret(secret.id)}
-                              >
-                                <Eye className="h-4 w-4" />
-                                <span className="sr-only">Reveal Secret</span>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Reveal Secret</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleCopySecret(secret.value)}
-                            >
-                              <Copy className="h-4 w-4" />
-                              <span className="sr-only">Copy to Clipboard</span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Copy to Clipboard</TooltipContent>
-                        </Tooltip>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleViewSecret(secret)}>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleEditSecret(secret)}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              Edit Secret
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-500 focus:text-red-500"
-                              onClick={() => handleDeleteSecret(secret.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Secret
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile view */}
-      <div className="md:hidden space-y-4">
-        {loading ? (
-          // Loading skeleton for mobile
-          Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="border rounded-md p-4 space-y-3">
+        {/* Mobile view - Loading */}
+        <div className="md:hidden space-y-4">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div key={index} className="border rounded-md p-4 space-y-2">
               <div className="flex justify-between">
                 <Skeleton className="h-5 w-32" />
                 <Skeleton className="h-6 w-20" />
@@ -546,13 +356,169 @@ export function SecretsTable() {
                 <Skeleton className="h-8 w-8" />
               </div>
             </div>
-          ))
-        ) : secrets.length === 0 ? (
-          <div className="text-center p-8 border rounded-md">No secrets found.</div>
-        ) : (
-          secrets.map(renderMobileSecretCard)
-        )}
+          ))}
+        </div>
+      </TooltipProvider>
+    )
+  }
+
+  if (secrets.length === 0) {
+    return (
+      <EmptyState
+        icon={KeyRound}
+        title="No secrets found"
+        description="You haven't added any secrets yet. Add a secret to securely store API keys, tokens, and other sensitive data."
+        action={{
+          label: "Add Secret",
+          onClick: handleCreateSecret,
+        }}
+      />
+    )
+  }
+
+  return (
+    <TooltipProvider>
+      {/* Desktop view */}
+      <div className="hidden md:block rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Secret Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Auto-Rotation</TableHead>
+              <TableHead>Last Accessed</TableHead>
+              <TableHead>Used By</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {secrets.map((secret) => {
+              const isRevealed = revealedSecrets.includes(secret.id)
+
+              return (
+                <TableRow key={secret.id}>
+                  <TableCell className="font-medium font-mono">{secret.name}</TableCell>
+                  <TableCell>{getTypeBadge(secret.type)}</TableCell>
+                  <TableCell>
+                    {secret.autoRotation ? (
+                      <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                        Enabled
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-muted/50 text-muted-foreground">
+                        Disabled
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {secret.lastAccessed ? (
+                      <Tooltip>
+                        <TooltipTrigger className="text-sm">
+                          {formatDistanceToNow(secret.lastAccessed, { addSuffix: true })}
+                        </TooltipTrigger>
+                        <TooltipContent>{format(secret.lastAccessed, "PPpp")}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-muted-foreground">Never</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {secret.usedBy.map((agent) => (
+                        <Badge key={agent} variant="secondary" className="text-xs">
+                          {agent}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      {isRevealed ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleHideSecret(secret.id)}
+                            >
+                              <EyeOff className="h-4 w-4" />
+                              <span className="sr-only">Hide Secret</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Hide Secret</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleRevealSecret(secret.id)}
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">Reveal Secret</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Reveal Secret</TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleCopySecret(secret.value)}
+                          >
+                            <Copy className="h-4 w-4" />
+                            <span className="sr-only">Copy to Clipboard</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copy to Clipboard</TooltipContent>
+                      </Tooltip>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleViewSecret(secret)}>
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditSecret(secret)}>
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Edit Secret
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-500 focus:text-red-500"
+                            onClick={() => handleDeleteSecret(secret.id)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Secret
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            })}
+          </TableBody>
+        </Table>
       </div>
+
+      {/* Mobile view */}
+      <div className="md:hidden space-y-4">{secrets.map(renderMobileSecretCard)}</div>
 
       {/* Modals and Drawers */}
       {selectedSecret && (

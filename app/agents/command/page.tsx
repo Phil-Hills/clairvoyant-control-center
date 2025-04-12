@@ -14,7 +14,9 @@ export default function CommandPage() {
           Describe what you need in plain English, and Gemini will create a cloud agent for you
         </p>
       </div>
-      <CommandConsole />
+      <div className="max-w-3xl mx-auto w-full">
+        <CommandConsole />
+      </div>
     </div>
   )
 }

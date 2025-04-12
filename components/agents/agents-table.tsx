@@ -12,6 +12,7 @@ import {
   Pause,
   Play,
   Trash2,
+  Bot,
 } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -27,57 +28,21 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
-
-// Mock data for agents
-const mockAgents = [
-  {
-    id: "agent-1",
-    name: "Data Processor",
-    status: "active",
-    cloudFunction: "data-processor-function",
-    triggerType: "scheduler",
-    lastRun: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
-  },
-  {
-    id: "agent-2",
-    name: "Content Analyzer",
-    status: "idle",
-    cloudFunction: "content-analyzer-function",
-    triggerType: "manual",
-    lastRun: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5), // 5 days ago
-  },
-  {
-    id: "agent-3",
-    name: "Notification Service",
-    status: "error",
-    cloudFunction: "notification-service-function",
-    triggerType: "pubsub",
-    lastRun: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1), // 1 day ago
-  },
-  {
-    id: "agent-4",
-    name: "Log Analyzer",
-    status: "active",
-    cloudFunction: "log-analyzer-function",
-    triggerType: "pubsub",
-    lastRun: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 12), // 12 hours ago
-  },
-  {
-    id: "agent-5",
-    name: "Sentiment Analyzer",
-    status: "idle",
-    cloudFunction: "sentiment-analyzer-function",
-    triggerType: "manual",
-    lastRun: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
-    startTime: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3), // 3 days ago
-  },
-]
+import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useRouter } from "next/navigation"
 
 type AgentStatus = "active" | "idle" | "error"
+
+interface Agent {
+  id: string
+  name: string
+  status: AgentStatus
+  cloudFunction: string
+  triggerType: string
+  lastRun: Date | null
+  startTime: Date | null
+}
 
 interface AgentsTableProps {
   filterStatus?: AgentStatus
@@ -85,13 +50,23 @@ interface AgentsTableProps {
 
 export function AgentsTable({ filterStatus }: AgentsTableProps) {
   const { toast } = useToast()
-  const [agents, setAgents] = useState(mockAgents)
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [agents, setAgents] = useState<Agent[]>([])
+
+  // Simulate loading state briefly and then show empty state
+  useState(() => {
+    const timer = setTimeout(() => {
+      setLoading(false)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   // Filter agents based on status if filterStatus is provided
   const filteredAgents = filterStatus ? agents.filter((agent) => agent.status === filterStatus) : agents
 
   const handlePauseAgent = (agentId: string) => {
-    setAgents(agents.map((agent) => (agent.id === agentId ? { ...agent, status: "idle" as AgentStatus } : agent)))
     toast({
       title: "Agent Paused",
       description: "The agent has been paused successfully.",
@@ -99,7 +74,6 @@ export function AgentsTable({ filterStatus }: AgentsTableProps) {
   }
 
   const handleResumeAgent = (agentId: string) => {
-    setAgents(agents.map((agent) => (agent.id === agentId ? { ...agent, status: "active" as AgentStatus } : agent)))
     toast({
       title: "Agent Resumed",
       description: "The agent has been resumed successfully.",
@@ -107,7 +81,6 @@ export function AgentsTable({ filterStatus }: AgentsTableProps) {
   }
 
   const handleDeleteAgent = (agentId: string) => {
-    setAgents(agents.filter((agent) => agent.id !== agentId))
     toast({
       title: "Agent Deleted",
       description: "The agent has been deleted successfully.",
@@ -170,6 +143,71 @@ export function AgentsTable({ filterStatus }: AgentsTableProps) {
     }
   }
 
+  const handleCreateAgent = () => {
+    router.push("/agents/create")
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Agent Name</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="hidden md:table-cell">Cloud Function</TableHead>
+              <TableHead className="hidden md:table-cell">Trigger Type</TableHead>
+              <TableHead className="hidden lg:table-cell">Last Run</TableHead>
+              <TableHead className="hidden lg:table-cell">Uptime</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-4 w-[180px]" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-[100px]" />
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <Skeleton className="h-4 w-[200px]" />
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <Skeleton className="h-6 w-[120px]" />
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <Skeleton className="h-4 w-[100px]" />
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <Skeleton className="h-4 w-[80px]" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Skeleton className="h-8 w-8 ml-auto" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
+
+  if (agents.length === 0) {
+    return (
+      <EmptyState
+        icon={Bot}
+        title="No agents found"
+        description="You haven't created any AI agents yet. Create your first agent to get started."
+        action={{
+          label: "Create Agent",
+          onClick: handleCreateAgent,
+        }}
+      />
+    )
+  }
+
   return (
     <TooltipProvider>
       <div className="rounded-md border">
@@ -189,14 +227,14 @@ export function AgentsTable({ filterStatus }: AgentsTableProps) {
             {filteredAgents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  No agents found.
+                  No agents found matching the current filter.
                 </TableCell>
               </TableRow>
             ) : (
               filteredAgents.map((agent) => (
                 <TableRow key={agent.id}>
                   <TableCell className="font-medium">{agent.name}</TableCell>
-                  <TableCell>{getStatusBadge(agent.status as AgentStatus)}</TableCell>
+                  <TableCell>{getStatusBadge(agent.status)}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     <div className="flex items-center">
                       <span className="truncate max-w-[150px]">{agent.cloudFunction}</span>
@@ -213,15 +251,21 @@ export function AgentsTable({ filterStatus }: AgentsTableProps) {
                   </TableCell>
                   <TableCell className="hidden md:table-cell">{getTriggerBadge(agent.triggerType)}</TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <Tooltip>
-                      <TooltipTrigger className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {formatDistanceToNow(agent.lastRun, { addSuffix: true })}
-                      </TooltipTrigger>
-                      <TooltipContent>{format(agent.lastRun, "PPpp")}</TooltipContent>
-                    </Tooltip>
+                    {agent.lastRun ? (
+                      <Tooltip>
+                        <TooltipTrigger className="flex items-center gap-1 text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          {formatDistanceToNow(agent.lastRun, { addSuffix: true })}
+                        </TooltipTrigger>
+                        <TooltipContent>{format(agent.lastRun, "PPpp")}</TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <span className="text-muted-foreground">Never run</span>
+                    )}
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell">{formatDistanceToNow(agent.startTime)}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {agent.startTime ? formatDistanceToNow(agent.startTime) : "N/A"}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <div className="hidden sm:flex sm:gap-2">

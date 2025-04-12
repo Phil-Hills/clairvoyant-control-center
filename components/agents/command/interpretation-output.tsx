@@ -5,14 +5,17 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Clipboard, Loader2, Sparkles, Check } from "lucide-react"
+import { Clipboard, Loader2, Sparkles, Check, Edit } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 import type { AgentBlueprint, GCPService } from "./command-console"
 
 interface InterpretationOutputProps {
   blueprint: AgentBlueprint
   onDeploy: () => void
+  onEdit: () => void
   isDeploying: boolean
   isDeployed: boolean
+  error: string | null
 }
 
 const serviceColors: Record<GCPService, string> = {
@@ -24,12 +27,27 @@ const serviceColors: Record<GCPService, string> = {
   "Cloud Storage": "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500/20",
 }
 
-export function InterpretationOutput({ blueprint, onDeploy, isDeploying, isDeployed }: InterpretationOutputProps) {
+export function InterpretationOutput({
+  blueprint,
+  onDeploy,
+  onEdit,
+  isDeploying,
+  isDeployed,
+  error,
+}: InterpretationOutputProps) {
   const [copied, setCopied] = useState(false)
+  const { toast } = useToast()
 
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(blueprint.blueprint, null, 2))
     setCopied(true)
+
+    toast({
+      title: "Copied to clipboard",
+      description: "Blueprint JSON has been copied to your clipboard",
+      duration: 2000,
+    })
+
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -49,7 +67,7 @@ export function InterpretationOutput({ blueprint, onDeploy, isDeploying, isDeplo
         </div>
 
         <div>
-          <h3 className="text-sm font-medium mb-2">Involved GCP Services</h3>
+          <h3 className="text-sm font-medium mb-2">Detected GCP Services</h3>
           <div className="flex flex-wrap gap-2">
             {blueprint.services.map((service) => (
               <Badge key={service} variant="outline" className={serviceColors[service]}>
@@ -77,21 +95,29 @@ export function InterpretationOutput({ blueprint, onDeploy, isDeploying, isDeplo
             <pre className="text-xs font-mono">{JSON.stringify(blueprint.blueprint, null, 2)}</pre>
           </ScrollArea>
         </div>
+
+        {error && <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={handleCopyJson}>
-          {copied ? (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Copied!
-            </>
-          ) : (
-            <>
-              <Clipboard className="mr-2 h-4 w-4" />
-              Copy JSON
-            </>
-          )}
-        </Button>
+      <CardFooter className="flex flex-wrap gap-2 justify-between">
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleCopyJson}>
+            {copied ? (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Clipboard className="mr-2 h-4 w-4" />
+                Copy JSON
+              </>
+            )}
+          </Button>
+          <Button variant="outline" onClick={onEdit}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Input
+          </Button>
+        </div>
         <Button onClick={onDeploy} disabled={isDeploying || isDeployed}>
           {isDeploying ? (
             <>
